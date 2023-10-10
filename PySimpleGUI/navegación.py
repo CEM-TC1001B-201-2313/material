@@ -32,8 +32,10 @@ def crearVentanaRegistro():
         [sg.Input(key="input apellido paterno")],
         [sg.Input(key="input apellido materno")],
         [sg.Input(key="input email")],
-        [sg.Input(key="input contraseña")],
-        [sg.Input(key="input repetir contraseña")],
+        [sg.Input(key="input contraseña",
+                  password_char="*")],
+        [sg.Input(key="input repetir contraseña",
+                  password_char="*")],
         [sg.Radio("Sí",
                   key="radio sí",
                   default=True,
@@ -62,7 +64,7 @@ ventanaMenuPrincipal = None
 
 while True:
     window, event, values = sg.read_all_windows()
-    if event == sg.WINDOW_CLOSED:
+    if event == sg.WINDOW_CLOSED or event == "botón salir":
         window.close()
         break
     # Para ir a otra ventana, preguntamos:
@@ -78,9 +80,16 @@ while True:
     elif window == ventanaLogin and \
          event == "botón ingresar" and \
          ventanaMenuPrincipal is None:
-        window.close()
-        ventanaLogin = None
-        ventanaMenuPrincipal = crearVentanaMenuPrincipal()
+        df = pd.read_csv("usuarios.csv")
+        usuario = df[(df["Email"] == values["input email"]) &
+                     (df["Contraseña"] == values["input password"])]
+        if len(usuario) > 0:
+            window.close()
+            ventanaLogin = None
+            ventanaMenuPrincipal = crearVentanaMenuPrincipal()
+        else:
+            sg.Popup("El usuario o contraseña son incorrectos",
+                     title="Error de inicio de sesión")
     # ventanaLogin ("botón registrar") -> ventanaRegistro
     elif window == ventanaLogin and \
          event == "botón registrar" and \
@@ -99,7 +108,34 @@ while True:
     elif window == ventanaRegistro and \
          event == "botón registrar" and \
          ventanaMenuPrincipal is None:
-        window.close()
-        ventanaRegistro = None
-        ventanaMenuPrincipal = crearVentanaMenuPrincipal()
+        
+        if len(values["input email"]) == 0 or \
+           values["input contraseña"] != values["input repetir contraseña"]:
+            sg.Popup("Error en el registro. Compruebe sus datos.",
+                     title = "Error en registro")
+        else:
+        
+            if values["radio sí"]:
+                notificaciones = "sí"
+            else:
+                notificaciones = "no"
+            usuario = pd.DataFrame({
+                "Nombre": [values["input nombre"]],
+                "Apellido Paterno": [values["input apellido paterno"]],
+                "Apellido Materno": [values["input apellido materno"]],
+                "Email": [values["input email"]],
+                "Contraseña": [values["input contraseña"]],
+                "Recibir Notificaciones": [notificaciones]
+                })
+            
+            df = pd.read_csv("usuarios.csv")
+            df = pd.concat([df, usuario], ignore_index=True)
+            df.to_csv("usuarios.csv", index=False)
+            
+            sg.Popup("¡Usuario creado exitosamente!",
+                     title = "Registro correcto.")
+            
+            window.close()
+            ventanaRegistro = None
+            ventanaMenuPrincipal = crearVentanaMenuPrincipal()
         
